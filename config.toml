@@ -22,7 +22,7 @@ defaultcontentlanguage = "en"
     weight = 2
 
 [[menu.main]]
-    url = "/project/"
+    url = "/projects/"
     name = "Projects"
     weight = 4
 
