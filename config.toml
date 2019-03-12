@@ -11,6 +11,9 @@ defaultcontentlanguage = "en"
 
     inverted = true
 
+    PygmentsCodeFences = true
+    PygmentsStyle = "rrt"
+
 [[menu.main]]
     url = "/"
     name = "Home"
@@ -24,6 +27,11 @@ defaultcontentlanguage = "en"
 [[menu.main]]
     url = "/projects/"
     name = "Projects"
+    weight = 3
+
+[[menu.main]]
+    url = "/posts/"
+    name = "Blog"
     weight = 4
 
 # Social icons to be shown on the right-hand side of the navigation bar
