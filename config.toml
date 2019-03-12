@@ -11,9 +11,6 @@ defaultcontentlanguage = "en"
 
     inverted = true
 
-    PygmentsCodeFences = true
-    PygmentsStyle = "rrt"
-
 [[menu.main]]
     url = "/"
     name = "Home"
