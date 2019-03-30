@@ -1,0 +1,73 @@
+---
+- hosts: production
+  become: true
+  vars:
+    image_name: sandco_landing
+    port_number: 3400
+    ufw_nginx_alias: 'Nginx HTTP'
+    hugo_source_dir: foo
+    hugo_destination_dir: bar
+    git_repo_url: https://github.com/jls83/sandco_landing.git
+  tasks:
+    - name: Update apt
+      apt: update_cache=yes
+
+    # Nginx steps
+    - name: Check if Nginx is installed
+      register: nginx_installed
+      command: nginx -v
+      ignore_errors: true
+
+    - name: Install Nginx if not installed
+      when: nginx_installed|failed
+      apt:
+        name: nginx
+
+    - name: Add Nginx config (if required)
+      # TODO: How?
+
+    # UFW steps
+    - name: Check if UFW is allowing Nginx traffic
+      register: ufw_nginx_rule_count
+      command: sudo ufw status | grep {{ ufw_nginx_alias }} | wc -l
+
+    - name: Set up Nginx to forward appropriate port (if required)
+      when: ufw_nginx_rule_count != 2
+      command: ufw allow {{ ufw_nginx_alias }}
+
+    # Git steps
+    - name: Create directory
+      command: mkdir {{ hugo_source_dir }}
+      ignore_errors: true
+
+    - name: Pull down repo from Github
+      git:
+        repo: 'git_repo_url'
+        dest: {{ hugo_source_dir }}
+
+    # Hugo steps
+    - name: Check if hugo is installed
+      register: hugo_installed
+      command: hugo version
+      ignore_errors: true
+
+    - name: Install hugo if not installed
+      command: snap install hugo --channel=extended
+
+    - name: Build hugo site
+      command: hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }} --minify
+
+    # Docker steps
+    - name: Stop all `sandco_landing` related Docker containers
+      command: docker stop $(docker ps --filter ancestor={{ image_name }} -a -q)
+
+    - name: Build Docker image
+      command: docker build . -t {{ image_name }}
+
+    - name: Run Docker container, restart Nginx
+      command: docker run -d -p {{ port_number }}:80 {{ image_name }}
+      notify: restart nginx
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
+
