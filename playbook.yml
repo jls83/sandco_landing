@@ -8,6 +8,8 @@
     hugo_source_dir: foo
     hugo_destination_dir: bar
     git_repo_url: https://github.com/jls83/sandco_landing.git
+    nginx_config_source: "ansible/templates/{{ image_name }}.conf"
+    nginx_config_dest: "/etc/nginx/sites-available/{{ image_name }}.conf"
   tasks:
     - name: Update apt
       apt: update_cache=yes
@@ -67,7 +69,7 @@
     - name: Create Nginx symlink
       file:
         src: {{ nginx_config_dest }}
-        dest: /etc/nginx/sites-enabled/whatever_i_want_to_call_it
+        dest: /etc/nginx/sites-enabled/{{ image_name }}.conf
         state: link
 
     # Docker steps
