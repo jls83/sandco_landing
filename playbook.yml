@@ -31,6 +31,7 @@
         path: "{{ hugo_source_dir }}"
         state: directory
       ignore_errors: true
+      become: false
 
     - name: Pull down repo from Github
       git:
@@ -40,16 +41,18 @@
     # Hugo steps
     - name: Install hugo
       command: snap install hugo
+      become: false
 
     - name: Create destination directory
       file:
         path: "{{ hugo_destination_dir }}"
         state: directory
-      become: true
+      become: false
 
       # TODO: Add minify later!
     - name: Build hugo site
-      command: hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }}
+      command: snap run hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }}
+      become: false
 
     # Nginx steps (part 2)
     - name: Copy Nginx config file
@@ -64,8 +67,20 @@
         state: link
 
     # Docker steps
-    - name: Stop all `sandco_landing` related Docker containers
-      command: docker stop $(docker ps --filter ancestor={{ image_name }} -a -q)
+    #
+    #    - name: Check for running `sandco_landing` Docker containers
+    #      register: docker_container_count
+    #      shell: "docker ps --filter ancestor={{ image_name }} -a -q | wc -l"
+    #
+    #    - name: Stop all `sandco_landing` related Docker containers (if any)
+    #      when: docker_container_count != "0"
+    #      shell: "docker stop $(docker ps --filter ancestor={{ image_name }} -a -q)"
+    #
+    - name: Stop all `sandco_landing` containers
+      docker_container:
+        name: *
+        image: "{{ image_name }}"
+        state: stopped
 
     - name: Build Docker image
       command: docker build . -t {{ image_name }}
