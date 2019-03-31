@@ -82,13 +82,6 @@
         state: link
 
     # Docker steps
-    - name: Build Docker image
-      docker_image:
-        path: "{{ hugo_source_dir }}"
-        name: "{{ image_name }}"
-        tag: latest
-        push: no
-
     - name: Stop all `sandco_landing` containers
       docker_container:
         name: "{{ app_name }}"
@@ -99,11 +92,10 @@
       docker_image:
         path: "{{ hugo_source_dir }}"
         name: "{{ image_name }}"
-        tag: latest
+        # tag: latest
         push: no
 
     - name: Run Docker container, restart Nginx
-      # command: docker run -d -p {{ port_number }}:80 {{ image_name }}
       docker_container:
         name: "{{ app_name }}"
         image: "{{ image_name }}"
