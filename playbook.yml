@@ -2,17 +2,32 @@
 - hosts: production
   become: true
   vars:
-    image_name: sandco_landing
+    app_name: sandco_landing
+    image_name: sandco_landing_image
     port_number: 3400
     ufw_nginx_alias: Nginx HTTP
-    hugo_source_dir: /home/jls83/sandco_landing
+    hugo_source_dir: "/home/jls83/{{ app_name }}"
     hugo_destination_dir: /home/jls83/sandco_landing_public
-    git_repo_url: https://github.com/jls83/sandco_landing.git
-    nginx_config_source: "ansible/templates/{{ image_name }}.conf"
-    nginx_config_dest: "/etc/nginx/sites-available/{{ image_name }}.conf"
+    git_repo_url: "https://github.com/jls83/{{ app_name }}.git"
+    nginx_config_source: "ansible/templates/{{ app_name }}.conf"
+    nginx_config_dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
+  environment:
+      PYTHONPATH: "{{ lookup('env','PYTHONPATH') }}:/usr/local/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages"
   tasks:
     - name: Update apt
       apt: update_cache=yes
+
+    # Python steps
+    - name: Install Pip
+      apt:
+        state: latest
+        name: python-pip
+
+    - name: Install pip packages
+      pip:
+        name:
+          - docker
+          - requests>=2.20.1
 
     # Nginx steps (part 1)
     - name: Install Nginx
@@ -63,30 +78,37 @@
     - name: Create Nginx symlink
       file:
         src: "{{ nginx_config_dest }}"
-        dest: /etc/nginx/sites-enabled/{{ image_name }}.conf
+        dest: /etc/nginx/sites-enabled/{{ app_name }}.conf
         state: link
 
     # Docker steps
-    #
-    #    - name: Check for running `sandco_landing` Docker containers
-    #      register: docker_container_count
-    #      shell: "docker ps --filter ancestor={{ image_name }} -a -q | wc -l"
-    #
-    #    - name: Stop all `sandco_landing` related Docker containers (if any)
-    #      when: docker_container_count != "0"
-    #      shell: "docker stop $(docker ps --filter ancestor={{ image_name }} -a -q)"
-    #
+    - name: Build Docker image
+      docker_image:
+        path: "{{ hugo_source_dir }}"
+        name: "{{ image_name }}"
+        tag: latest
+        push: no
+
     - name: Stop all `sandco_landing` containers
       docker_container:
-        name: *
+        name: "{{ app_name }}"
         image: "{{ image_name }}"
         state: stopped
 
     - name: Build Docker image
-      command: docker build . -t {{ image_name }}
+      docker_image:
+        path: "{{ hugo_source_dir }}"
+        name: "{{ image_name }}"
+        tag: latest
+        push: no
 
     - name: Run Docker container, restart Nginx
-      command: docker run -d -p {{ port_number }}:80 {{ image_name }}
+      # command: docker run -d -p {{ port_number }}:80 {{ image_name }}
+      docker_container:
+        name: "{{ app_name }}"
+        image: "{{ image_name }}"
+        state: started
+        ports: "{{ port_number }}:80"
       notify: restart nginx
   handlers:
     - name: restart nginx
