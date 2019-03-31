@@ -62,7 +62,7 @@
 
     # Nginx steps (part 2)
     - name: Copy Nginx config file
-      copy:
+      template:
         src: {{ nginx_config_source }}
         dest: {{ nginx_config_dest }}
 
