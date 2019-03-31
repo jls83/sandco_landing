@@ -7,7 +7,7 @@
     port_number: 3400
     ufw_nginx_alias: Nginx HTTP
     hugo_source_dir: "/home/jls83/{{ app_name }}"
-    hugo_destination_dir: /home/jls83/sandco_landing_public
+    hugo_destination_dir: "{{ hugo_source_dir }}/public"
     git_repo_url: "https://github.com/jls83/{{ app_name }}.git"
     nginx_config_source: "ansible/templates/{{ app_name }}.conf"
     nginx_config_dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
