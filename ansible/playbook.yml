@@ -37,18 +37,6 @@
           - docker
           - requests>=2.20.1
 
-    - name: Create source directory
-      file:
-        path: "{{ hugo_source_dir }}"
-        state: directory
-      become: false
-
-    - name: Create destination directory
-      file:
-        path: "{{ hugo_destination_dir }}"
-        state: directory
-      become: false
-
     # Nginx steps (part 2)
     - name: Allow Nginx for UFW
       ufw:
@@ -65,7 +53,6 @@
         src: "{{ nginx_config_dest }}"
         dest: /etc/nginx/sites-enabled/{{ app_name }}.conf
         state: link
-      notify: restart nginx
 
     # Pull down repo and build
     - name: Pull down repo from Github
@@ -73,18 +60,17 @@
         repo: "{{  git_repo_url  }}"
         dest: "{{ hugo_source_dir }}"
 
-      # TODO: Add minify later!
+    - name: Create destination directory
+      file:
+        path: "{{ hugo_destination_dir }}"
+        state: directory
+      become: false
+
     - name: Build hugo site
       command: snap run hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }} --minify
       become: false
 
     # Docker steps
-    - name: Stop all `sandco_landing` containers
-      docker_container:
-        name: "{{ app_name }}"
-        image: "{{ image_name }}"
-        state: stopped
-
     - name: Remove old Docker image
       docker_image:
         name: "{{ image_name }}"
@@ -97,13 +83,19 @@
         name: "{{ image_name }}"
         push: no
 
+    - name: Stop all `sandco_landing` containers
+      docker_container:
+        name: "{{ app_name }}"
+        image: "{{ image_name }}"
+        state: stopped
+
     - name: Run Docker container
       docker_container:
         name: "{{ app_name }}"
         image: "{{ image_name }}"
         state: started
         ports: "{{ port_number }}:80"
-        #notify: restart nginx
+      notify: restart nginx
   handlers:
     - name: restart nginx
       service: name=nginx state=restarted
