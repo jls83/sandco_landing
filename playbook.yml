@@ -12,7 +12,7 @@
     - name: Update apt
       apt: update_cache=yes
 
-    # Nginx steps
+    # Nginx steps (part 1)
     - name: Check if Nginx is installed
       register: nginx_installed
       command: nginx -v
@@ -22,9 +22,6 @@
       when: nginx_installed|failed
       apt:
         name: nginx
-
-    - name: Add Nginx config (if required)
-      # TODO: How?
 
     # UFW steps
     - name: Check if UFW is allowing Nginx traffic
@@ -37,7 +34,7 @@
 
     # Git steps
     - name: Create directory
-      command: mkdir {{ hugo_source_dir }}
+      command: mkdir -p {{ hugo_source_dir }}
       ignore_errors: true
 
     - name: Pull down repo from Github
@@ -54,8 +51,24 @@
     - name: Install hugo if not installed
       command: snap install hugo --channel=extended
 
+    - name: Create destination directory
+      command: mkdir -p {{ hugo_destination_dir }}
+      become: true
+
     - name: Build hugo site
       command: hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }} --minify
+
+    # Nginx steps (part 2)
+    - name: Copy Nginx config file
+      copy:
+        src: {{ nginx_config_source }}
+        dest: {{ nginx_config_dest }}
+
+    - name: Create Nginx symlink
+      file:
+        src: {{ nginx_config_dest }}
+        dest: /etc/nginx/sites-enabled/whatever_i_want_to_call_it
+        state: link
 
     # Docker steps
     - name: Stop all `sandco_landing` related Docker containers
