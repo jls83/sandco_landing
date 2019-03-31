@@ -4,9 +4,9 @@
   vars:
     image_name: sandco_landing
     port_number: 3400
-    ufw_nginx_alias: 'Nginx HTTP'
-    hugo_source_dir: foo
-    hugo_destination_dir: bar
+    ufw_nginx_alias: Nginx HTTP
+    hugo_source_dir: /home/jls83/sandco_landing
+    hugo_destination_dir: /home/jls83/sandco_landing_public
     git_repo_url: https://github.com/jls83/sandco_landing.git
     nginx_config_source: "ansible/templates/{{ image_name }}.conf"
     nginx_config_dest: "/etc/nginx/sites-available/{{ image_name }}.conf"
@@ -15,60 +15,51 @@
       apt: update_cache=yes
 
     # Nginx steps (part 1)
-    - name: Check if Nginx is installed
-      register: nginx_installed
-      command: nginx -v
-      ignore_errors: true
-
-    - name: Install Nginx if not installed
-      when: nginx_installed|failed
+    - name: Install Nginx
       apt:
         name: nginx
 
     # UFW steps
-    - name: Check if UFW is allowing Nginx traffic
-      register: ufw_nginx_rule_count
-      command: sudo ufw status | grep {{ ufw_nginx_alias }} | wc -l
-
-    - name: Set up Nginx to forward appropriate port (if required)
-      when: ufw_nginx_rule_count != 2
-      command: ufw allow {{ ufw_nginx_alias }}
+    - name: Allow Nginx for UFW
+      ufw:
+        rule: allow
+        name: "Nginx HTTP"
 
     # Git steps
     - name: Create directory
-      command: mkdir -p {{ hugo_source_dir }}
+      file:
+        path: "{{ hugo_source_dir }}"
+        state: directory
       ignore_errors: true
 
     - name: Pull down repo from Github
       git:
-        repo: 'git_repo_url'
-        dest: {{ hugo_source_dir }}
+        repo: "{{  git_repo_url  }}"
+        dest: "{{ hugo_source_dir }}"
 
     # Hugo steps
-    - name: Check if hugo is installed
-      register: hugo_installed
-      command: hugo version
-      ignore_errors: true
-
-    - name: Install hugo if not installed
-      command: snap install hugo --channel=extended
+    - name: Install hugo
+      command: snap install hugo
 
     - name: Create destination directory
-      command: mkdir -p {{ hugo_destination_dir }}
+      file:
+        path: "{{ hugo_destination_dir }}"
+        state: directory
       become: true
 
+      # TODO: Add minify later!
     - name: Build hugo site
-      command: hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }} --minify
+      command: hugo -s {{ hugo_source_dir }} -d {{ hugo_destination_dir }}
 
     # Nginx steps (part 2)
     - name: Copy Nginx config file
       template:
-        src: {{ nginx_config_source }}
-        dest: {{ nginx_config_dest }}
+        src: "{{ nginx_config_source }}"
+        dest: "{{ nginx_config_dest }}"
 
     - name: Create Nginx symlink
       file:
-        src: {{ nginx_config_dest }}
+        src: "{{ nginx_config_dest }}"
         dest: /etc/nginx/sites-enabled/{{ image_name }}.conf
         state: link
 
