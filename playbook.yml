@@ -88,6 +88,12 @@
         image: "{{ image_name }}"
         state: stopped
 
+    - name: Remove old Docker image
+      docker_image:
+        name: "{{ image_name }}"
+        state: absent
+        force: yes
+
     - name: Build Docker image
       docker_image:
         path: "{{ hugo_source_dir }}"
