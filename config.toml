@@ -2,7 +2,7 @@ languageCode = "en-us"
 title = "Joseph L. Sanders"
 theme = "hugo-coder"
 defaultcontentlanguage = "en"
-baseUrl = ""
+baseUrl = "/"
 
 [params]
     author = "Joseph Sanders"
